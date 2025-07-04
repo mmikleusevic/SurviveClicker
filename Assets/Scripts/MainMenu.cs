@@ -10,6 +10,8 @@ public class MainMenu : MonoBehaviour
     {
         mainMenuPanel.SetActive(false);
         gamePanel.SetActive(true);
+        
+        GameManager.Instance.PlayGame();
     }
 
     public void Options()
