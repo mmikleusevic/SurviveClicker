@@ -32,6 +32,7 @@ public class GameManager : MonoBehaviour
     
     [Header("Time")][Space(10)]
     [SerializeField] private int dayLengthInSeconds;
+    [SerializeField] private int notificationLength;
     
     [Header("Text")]
     [SerializeField] private TMP_Text notificationText;
@@ -48,8 +49,8 @@ public class GameManager : MonoBehaviour
     private int houses; // 1 house takes 4 people
     private int farms;
     private int woodcutters;
-    private int blacksmiths;
     private int quarries;
+    private int blacksmiths;
     private int ironMines;
     private int goldMines;
     
@@ -58,14 +59,23 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TMP_Text populationText;
     [SerializeField] private TMP_Text foodText;
     [SerializeField] private TMP_Text woodText;
+    [SerializeField] private TMP_Text stoneText;
+    [SerializeField] private TMP_Text toolsText;
     [SerializeField] private TMP_Text ironText;
+    [SerializeField] private TMP_Text goldText;
     
     [Header("Buildings")][Space(10)]
     [SerializeField] private TMP_Text farmsText;
     [SerializeField] private TMP_Text woodcuttersText;
     [SerializeField] private TMP_Text housesText;
+    [SerializeField] private TMP_Text quarriesText;
+    [SerializeField] private TMP_Text blacksmithsText;
+    [SerializeField] private TMP_Text ironMinesText;
+    [SerializeField] private TMP_Text goldMinesText;
     
     [SerializeField] private Image dayImage;
+    
+    private Pause pause;
     
     private IEnumerator notificationCoroutine;
 
@@ -74,6 +84,8 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         if (!Instance) Instance = this;
+
+        pause = GetComponent<Pause>();
     }
 
     private void Update()
@@ -190,10 +202,108 @@ public class GameManager : MonoBehaviour
         {
             MakeANotification($"Not enough resources to build a house, you need {woodNeeded - wood} wood");
         }
-        
-        UpdateText();
     }
 
+    public void BuildQuarry()
+    {
+        int woodNeeded = 2;
+        int stoneNeeded = 2;
+        int workerAmount = 1;
+
+        if (wood >= woodNeeded && stone >= stoneNeeded && CanAssignWorker(workerAmount))
+        {
+            wood -= woodNeeded;
+            stone -= stoneNeeded;
+            WorkerAssign(workerAmount);
+            quarries++;
+            
+            MakeANotification($"You built a quarry!");
+
+            UpdateText();
+        }
+        else
+        {
+            MakeANotification(
+                $"Not enough resources to build a quarry, you need {woodNeeded - wood} wood and {stoneNeeded - stone} stone");
+        }
+    }
+    
+    public void BuildBlacksmith()
+    {
+        int woodNeeded = 2;
+        int ironNeeded = 2;
+        int workerAmount = 1;
+
+        if (wood >= woodNeeded && iron >= ironNeeded && CanAssignWorker(workerAmount))
+        {
+            wood -= woodNeeded;
+            iron  -= ironNeeded;
+            WorkerAssign(workerAmount);
+            blacksmiths++;
+            
+            MakeANotification($"You built a blacksmith!");
+
+            UpdateText();
+        }
+        else
+        {
+            MakeANotification(
+                $"Not enough resources to build a blacksmith, you need {woodNeeded - wood} wood, and {ironNeeded - iron} iron");
+        }
+    }
+    
+    public void BuildIronMine()
+    {
+        int woodNeeded = 2;
+        int stoneNeeded = 2;
+        int goldNeeded = 2;
+        int workerAmount = 2;
+
+        if (wood >= woodNeeded && stone >= stoneNeeded && gold >= goldNeeded && CanAssignWorker(workerAmount))
+        {
+            wood -= woodNeeded;
+            stone -= stoneNeeded;
+            gold -= goldNeeded;
+            WorkerAssign(workerAmount);
+            ironMines++;
+            
+            MakeANotification($"You built an iron mine!");
+
+            UpdateText();
+        }
+        else
+        {
+            MakeANotification(
+                $"Not enough resources to build an iron mine, you need {woodNeeded - wood} wood and {stoneNeeded - stone} stone, and {goldNeeded - gold} gold");
+        }
+    }
+    
+    public void BuildGoldMine()
+    {
+        int woodNeeded = 2;
+        int stoneNeeded = 2;
+        int ironNeeded = 2;
+        int workerAmount = 2;
+
+        if (wood >= woodNeeded && stone >= stoneNeeded && iron >= ironNeeded && CanAssignWorker(workerAmount))
+        {
+            wood -= woodNeeded;
+            stone -= stoneNeeded;
+            iron  -= ironNeeded;
+            WorkerAssign(workerAmount);
+            goldMines++;
+            
+            MakeANotification($"You built a gold mine!");
+
+            UpdateText();
+        }
+        else
+        {
+            MakeANotification(
+                $"Not enough resources to build a gold mine, you need {woodNeeded - wood} wood and {stoneNeeded - stone} stone, and {ironNeeded - iron} iron");
+        }
+    }
+    
     private void MakeANotification(string text)
     {
         if (notificationCoroutine != null)
@@ -228,8 +338,12 @@ public class GameManager : MonoBehaviour
         FoodConsumption();
         WoodGathering();
         WoodProduction();
+        StoneProduction();
+        ToolsProduction();
+        IronProduction();
+        GoldProduction();
         IncreasePopulation();
-
+        
         UpdateText();
         
         yield return DayPassed();
@@ -273,9 +387,17 @@ public class GameManager : MonoBehaviour
         return houses * 4;
     }
     
+    // Lose condition
     private void FoodConsumption()
     {
-        food -= Population();
+        int population = Population();
+        food -= population;
+
+        if (food <= population)
+        {
+            pause.StopGame("You lost the game. Everyone starved to death!");
+            StopGame();
+        }
     }
 
     private void FoodGathering()
@@ -297,7 +419,33 @@ public class GameManager : MonoBehaviour
     {
         wood += woodcutters * 2;
     }
+    
+    private void IronProduction()
+    {
+        iron += ironMines * 2;
+    }
 
+    private void GoldProduction()
+    {
+        gold += goldMines * 2;
+
+        if (gold >= 100)
+        {
+            StopGame();
+            pause.StopGame("You won the game. You earned 100 gold!");
+        }
+    }
+    
+    private void StoneProduction()
+    {
+        stone += quarries * 5;
+    }
+    
+    private void ToolsProduction()
+    {
+        tools += blacksmiths * 5;
+    }
+    
     private void UpdateText()
     {
         daysText.text = $"{days}";
@@ -305,9 +453,17 @@ public class GameManager : MonoBehaviour
         foodText.text = $"{food}";
         woodText.text = $"{wood}";
         ironText.text = $"{iron}";
+        stoneText.text = $"{stone}";
+        toolsText.text = $"{tools}";
+        ironText.text = $"{iron}";
+        goldText.text = $"{gold}";
         farmsText.text = $"Farms: {farms}";
         woodcuttersText.text = $"Woodcutters: {woodcutters}";
         housesText.text = $"Houses: {houses}";
+        quarriesText.text = $"Quarries: {quarries}";
+        blacksmithsText.text = $"Blacksmiths: {blacksmiths}";
+        ironMinesText.text = $"Iron Mines: {ironMines}";
+        goldMinesText.text = $"Gold Mines: {goldMines}";
     }
 
     public void SetVolume(float volume)

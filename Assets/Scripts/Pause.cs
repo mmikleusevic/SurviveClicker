@@ -7,12 +7,14 @@ public class Pause : MonoBehaviour
     [SerializeField] private GameObject pausePanel;
     [SerializeField] private GameObject gamePanel;
     [SerializeField] private GameObject mainMenuPanel;
+    [SerializeField] private TMP_Text gameOverText;
     
     private bool isPaused;
+    private bool isGameOver;
     
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (Input.GetKeyDown(KeyCode.Escape) && !isGameOver)
         {
             if (Time.timeScale == 1)
             {
@@ -30,12 +32,24 @@ public class Pause : MonoBehaviour
     public void BackToMainMenu()
     {
         GameManager.Instance.StopGame();
+
+        isGameOver = false;
         
         ResumeGame();
         
         gamePanel.SetActive(false);
         mainMenuPanel.SetActive(true);
         pausePanel.SetActive(false);
+        gameOverText.text = String.Empty;
+    }
+
+    public void StopGame(string text)
+    {
+        pausePanel.SetActive(true);
+        gamePanel.SetActive(false);
+        gameOverText.text = text;
+        isGameOver = true;
+        PauseGame();
     }
 
     private void PauseGame()
