@@ -7,7 +7,11 @@ using UnityEngine.UI;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
+
+    private const string HIGHSCORE_TIME = "HighscoreTime";
+    private const string HIGHSCORE_NAME = "HighscoreName";
     
+    [SerializeField] private TMP_InputField nameInputField;
     [SerializeField] private AudioSource audioSource;
     
     [Header("Resources")][Space(10)]
@@ -80,6 +84,9 @@ public class GameManager : MonoBehaviour
     private IEnumerator notificationCoroutine;
 
     private float timer;
+    private float currentTimeTimer;
+    private float highscoreTimeTimer;
+    private bool isGameStopped;
     
     private void Awake()
     {
@@ -88,11 +95,21 @@ public class GameManager : MonoBehaviour
         pause = GetComponent<Pause>();
     }
 
+    private void Start()
+    {
+        nameInputField.text = SaveSystem.GetStringValue(HIGHSCORE_NAME);
+        highscoreTimeTimer = SaveSystem.GetFloatValue(HIGHSCORE_TIME);
+        Debug.Log(nameInputField.text);
+        Debug.Log(highscoreTimeTimer);
+    }
+
     private void Update()
     {
         dayImage.fillAmount = timer / dayLengthInSeconds;
         
         timer += Time.deltaTime;
+
+        if (!isGameStopped) currentTimeTimer += Time.deltaTime;
     }
 
     public void PlayGame()
@@ -122,10 +139,19 @@ public class GameManager : MonoBehaviour
         ironMines = startingIronMines;
         goldMines = startingGoldMines;
         notificationText.text = string.Empty;
+        isGameStopped = false;
     }
 
     public void StopGame()
     {
+        isGameStopped = true;
+        
+        if (currentTimeTimer > highscoreTimeTimer)
+        {
+            highscoreTimeTimer = currentTimeTimer;
+            SaveSystem.SetFloatValue(HIGHSCORE_TIME, highscoreTimeTimer);
+            SaveSystem.SetStringValue(HIGHSCORE_NAME, nameInputField.text);
+        }
         StopAllCoroutines();
     }
 
